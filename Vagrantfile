@@ -1,6 +1,6 @@
 Vagrant.configure("2") do |config|
     config.vm.box = "ubuntu/jammy64"
-    config.vm.disk :disk, size: "50GB"
+    # config.vm.disk :disk, size: "50GB"
     config.vm.provision :docker
     config.vm.network "private_network", ip: "192.168.56.11"
     config.vm.synced_folder './', '/vagrant', type: 'rsync'
@@ -13,7 +13,10 @@ Vagrant.configure("2") do |config|
     # Mostly copied from .github/workflows/gotests.yml to install dependencies
     config.vm.provision "shell", inline: <<-SHELL
         apt-get update
-        apt-get install -y build-essential clang conntrack libcap-dev libelf-dev net-tools docker-compose curl apt-transport-https golang gnupg2 ca-certificates lsb-release software-properties-common
+        apt-get install -y build-essential clang conntrack libcap-dev libelf-dev net-tools docker-compose curl apt-transport-https golang gnupg2 ca-certificates lsb-release software-properties-common rsyslog
+        # Enable and start Rsyslog
+        systemctl enable rsyslog
+        systemctl start rsyslog
         # Install kind
         curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.12.0/kind-linux-amd64
         chmod +x ./kind
@@ -38,10 +41,8 @@ Vagrant.configure("2") do |config|
         # # sudo apt-get update && sudo apt-get install elasticsearch kibana
         # Install Tetragon
         git clone https://github.com/mikkel0x/ebpf-sandbox.git
-        kind create cluster --config "ebpf-sandbox/nocni_1worker.yaml"
-        kubectl apply -f /ebpf-sandbox/tetragon.yml
-        kubectl apply -f /ebpf-sandbox/sys-write-etc-kubernetes-manifests.yaml
+        kind create cluster --config "./ebpf-sandbox/config/nocni_1worker.yaml"
+        kubectl apply -f ./ebpf-sandbox/config/tetragon.yml
+        kubectl apply -f ./ebpf-sandbox/config/sys-write-etc-kubernetes-manifests.yaml
     SHELL
-
-
   end
