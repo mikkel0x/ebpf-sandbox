@@ -18,11 +18,10 @@ Vagrant.configure("2") do |config|
         curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.12.0/kind-linux-amd64
         chmod +x ./kind
         mv ./kind /usr/local/bin/
-        # Install kubectl
-        sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
-        echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-        sudo apt update
-        sudo apt -y install kubelet kubeadm kubectl
+        # Install k8s
+        snap install kubectl --classic
+        snap install kubelet --classic
+        snap install kubeadm --classic
         # Install helm
         curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
         chmod 700 get_helm.sh
