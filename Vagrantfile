@@ -13,32 +13,42 @@ Vagrant.configure("2") do |config|
     # Mostly copied from .github/workflows/gotests.yml to install dependencies
     config.vm.provision "shell", inline: <<-SHELL
         apt-get update
-        apt-get install -y build-essential clang conntrack libcap-dev libelf-dev net-tools docker-compose curl apt-transport-https golang gnupg2 ca-certificates lsb-release software-properties-common rsyslog
+        apt-get install -y build-essential clang conntrack libcap-dev libelf-dev net-tools docker-compose curl apt-transport-https golang gnupg2 ca-certificates lsb-release software-properties-common syslog-ng
+        
         # Enable and start Rsyslog
         systemctl enable rsyslog
         systemctl start rsyslog
+        
         # Install kind
         curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.12.0/kind-linux-amd64
         chmod +x ./kind
         mv ./kind /usr/local/bin/
+        
         # Install k8s
         snap install kubectl --classic
         snap install kubelet --classic
         snap install kubeadm --classic
+        
         # Install helm
         curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
         chmod 700 get_helm.sh
         ./get_helm.sh
+        
         # Install unzip
         apt install unzip
+        
         # Install portainer
         docker volume create portainer_data
         docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
-        # # #install ELK
-        # # sudo apt-get install apt-transport-https
-        # # wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
-        # # echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
-        # # sudo apt-get update && sudo apt-get install elasticsearch kibana
+        
+        # Install ELK and Filebeat
+        git clone https://github.com/deviantony/docker-elk.git
+        docker-compose -f docker-elk/docker-compose.yml up -d
+        wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
+        sudo apt-get update && sudo apt-get install filebeat
+        sudo systemctl enable filebeat
+        
         # Install Tetragon
         git clone https://github.com/mikkel0x/ebpf-sandbox.git
         kind create cluster --config "./ebpf-sandbox/config/nocni_1worker.yaml"
