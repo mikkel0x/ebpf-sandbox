@@ -1,0 +1,227 @@
+---
+# Source: hubble-enterprise/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hubble-enterprise
+  namespace: kube-system
+  labels:
+    helm.sh/chart: hubble-enterprise-1.9.0-rc3
+    app.kubernetes.io/name: hubble-enterprise
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: hubble-enterprise/templates/fgs_configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hubble-enterprise-config
+  namespace: kube-system
+  labels:
+    helm.sh/chart: hubble-enterprise-1.9.0-rc3
+    app.kubernetes.io/name: hubble-enterprise
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/managed-by: Helm
+data:
+  btf: /sys/kernel/btf/vmlinux
+  procfs: /procRoot
+  tlstc: "false"
+  enable-process-cred: "false"
+  enable-process-ns: "false"
+  process-cache-size: "65536"
+  export-filename: /var/run/cilium/hubble/fgs.log
+  export-file-max-size-mb: "10"
+  export-file-max-backups: "5"
+  export-file-compress: "false"
+  export-allowlist: |-
+    {"event_set":["PROCESS_CONNECT", "PROCESS_CLOSE", "PROCESS_EXIT", "PROCESS_ACCEPT", "PROCESS_KPROBE", "PROCESS_EXEC", "PROCESS_LISTEN"]}
+  export-denylist: |-
+    
+  export-rate-limit: "-1"
+  enable-k8s-api: "true"
+  metrics-server: :2112
+---
+# Source: hubble-enterprise/templates/clusterrole.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: hubble-enterprise
+  labels:
+    helm.sh/chart: hubble-enterprise-1.9.0-rc3
+    app.kubernetes.io/name: hubble-enterprise
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - isovalent.com
+    resources:
+      - '*'
+    verbs:
+      - '*'
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - create
+      - get
+      - list
+      - update
+      - watch
+---
+# Source: hubble-enterprise/templates/clusterrolebinding.yml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: hubble-enterprise
+  labels:
+    helm.sh/chart: hubble-enterprise-1.9.0-rc3
+    app.kubernetes.io/name: hubble-enterprise
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: hubble-enterprise
+subjects:
+  - kind: ServiceAccount
+    namespace: kube-system
+    name: hubble-enterprise
+---
+# Source: hubble-enterprise/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    helm.sh/chart: hubble-enterprise-1.9.0-rc3
+    app.kubernetes.io/name: hubble-enterprise
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/managed-by: Helm
+  name: hubble-enterprise
+  namespace: kube-system
+spec:
+  ports:
+    - name: metrics
+      port: 2112
+      protocol: TCP
+      targetPort: 2112
+  selector:
+    helm.sh/chart: hubble-enterprise-1.9.0-rc3
+    app.kubernetes.io/name: hubble-enterprise
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/managed-by: Helm
+  type: ClusterIP
+---
+# Source: hubble-enterprise/templates/daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    helm.sh/chart: hubble-enterprise-1.9.0-rc3
+    app.kubernetes.io/name: hubble-enterprise
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/managed-by: Helm
+  name: hubble-enterprise
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hubble-enterprise
+      app.kubernetes.io/instance: release-name
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: hubble-enterprise-1.9.0-rc3
+        app.kubernetes.io/name: hubble-enterprise
+        app.kubernetes.io/instance: release-name
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      serviceAccountName: hubble-enterprise
+      initContainers:
+      - name: enterprise-operator
+        command:
+        - hubble-enterprise-operator
+        image: "quay.io/isovalent/hubble-enterprise-operator:v1.9.0-rc2"
+      containers:
+      - name: export-stdout
+        image: "quay.io/isovalent/hubble-export-stdout:v1.0.0"
+        imagePullPolicy: IfNotPresent
+        env:
+          []
+        securityContext:
+          {}
+        resources:
+          {}
+        command:
+          - hubble-export-stdout
+        args:
+          - /var/run/cilium/hubble/fgs.log
+          - /var/run/cilium/hubble/hubble.log
+        volumeMounts:
+          - name: export-logs
+            mountPath: /var/run/cilium/hubble
+      - name: enterprise
+        securityContext:
+          privileged: true
+        image: "quay.io/isovalent/hubble-enterprise:v1.8.2"
+        imagePullPolicy: IfNotPresent
+        command:
+          - /usr/bin/hubble-fgs
+        args:
+          - --config-dir=/etc/hubble-enterprise
+        volumeMounts:
+          - mountPath: /etc/hubble-enterprise
+            name: fgs-config
+            readOnly: true
+          - mountPath: /sys/fs/bpf
+            mountPropagation: Bidirectional
+            name: bpf-maps
+          - mountPath: "/var/run/cilium"
+            name: cilium-run
+          - mountPath: /var/run/cilium/hubble
+            name: export-logs
+          - mountPath: "/procRoot"
+            name: host-proc
+        env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                  fieldPath: spec.nodeName
+        livenessProbe:
+          exec:
+            command:
+            - hubble-enterprise
+            - status
+      tolerations:
+      - operator: Exists
+      hostNetwork: true
+      dnsPolicy: Default
+      terminationGracePeriodSeconds: 1
+      volumes:
+      - name: cilium-run
+        hostPath:
+          path: /var/run/cilium
+          type: DirectoryOrCreate
+      - name: export-logs
+        hostPath:
+          path: /var/run/cilium/hubble
+          type: DirectoryOrCreate
+      - name: fgs-config
+        configMap:
+          name: hubble-enterprise-config
+      - name: bpf-maps
+        hostPath:
+          path: /sys/fs/bpf
+          type: DirectoryOrCreate
+      - name: host-proc
+        hostPath:
+          path: /proc
+          type: Directory
