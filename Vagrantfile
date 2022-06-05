@@ -45,7 +45,7 @@ Vagrant.configure("2") do |config|
         echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
         curl -L -O https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-8.2.2-linux-x86_64.tar.gz
         tar xzvf filebeat-8.2.2-linux-x86_64.tar.gz
-        sudo ./filebeat-8.2.2-linux-x86_64/filebeat -c ./ebpf-sandbox/configs/filebeat.yml -e
+        sudo ./filebeat-8.2.2-linux-x86_64/filebeat -c ./ebpf-sandbox/config/filebeat.yml -e
         
         # Install Tetragon
         echo "[$(date)] Starting kind-start" > /var/log/kind-start.log
@@ -74,6 +74,6 @@ Vagrant.configure("2") do |config|
         kubectl expose deployment nginx-deployment --type=NodePort --name=nginx-service
 
         # Isovalent Privleged Pod
-        kubectl apply -f ./ebpf-sandbox/config/clusters/isovalent-privileged.yaml
+        kubectl apply -f ./ebpf-sandbox/config/clusters/isovalent-privleged.yaml
     SHELL
   end
