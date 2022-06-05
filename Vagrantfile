@@ -74,6 +74,6 @@ Vagrant.configure("2") do |config|
         kubectl expose deployment nginx-deployment --type=NodePort --name=nginx-service
 
         # Isovalent Privleged Pod
-        kubectl apply -f isovalent-privileged.yaml
+        kubectl apply -f ./config/clusters/isovalent-privileged.yaml
     SHELL
   end
