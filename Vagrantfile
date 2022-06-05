@@ -45,7 +45,7 @@ Vagrant.configure("2") do |config|
         echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
         curl -L -O https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-8.2.2-linux-x86_64.tar.gz
         tar xzvf filebeat-8.2.2-linux-x86_64.tar.gz
-        sudo ./filebeat-8.2.2-linux-x86_64/filebeat -c /configs/filebeat.yml -e
+        sudo ./filebeat-8.2.2-linux-x86_64/filebeat -c ./ebpf-sandbox/configs/filebeat.yml -e
         
         # Install Tetragon
         echo "[$(date)] Starting kind-start" > /var/log/kind-start.log
@@ -57,7 +57,7 @@ Vagrant.configure("2") do |config|
 
         # Install vulnerable clusters
         # Kube-goat
-        kind create cluster --name=kube-goat --config=./config/clusters/kube-goat.yaml
+        kind create cluster --name=kube-goat --config=./ebpf-sandbox/config/clusters/kube-goat.yaml
 
         #BishopFox badPods
         kubectl apply -f https://raw.githubusercontent.com/BishopFox/badPods/main/manifests/everything-allowed/pod/everything-allowed-exec-pod.yaml
@@ -74,6 +74,6 @@ Vagrant.configure("2") do |config|
         kubectl expose deployment nginx-deployment --type=NodePort --name=nginx-service
 
         # Isovalent Privleged Pod
-        kubectl apply -f ./config/clusters/isovalent-privileged.yaml
+        kubectl apply -f ./ebpf-sandbox/config/clusters/isovalent-privileged.yaml
     SHELL
   end
