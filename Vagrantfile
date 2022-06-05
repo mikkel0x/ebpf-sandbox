@@ -43,9 +43,9 @@ Vagrant.configure("2") do |config|
         docker-compose -f docker-elk/docker-compose.yml up -d
         wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
         echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
-        sudo apt-get update && sudo apt-get install filebeat
-        sudo filebeat modules enable system
-        sudo systemctl enable filebeat
+        curl -L -O https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-8.2.2-linux-x86_64.tar.gz
+        tar xzvf filebeat-8.2.2-linux-x86_64.tar.gz
+        sudo ./filebeat-8.2.2-linux-x86_64/filebeat -c /configs/filebeat.yml -e
         
         # Install Tetragon
         echo "[$(date)] Starting kind-start" > /var/log/kind-start.log
@@ -54,5 +54,26 @@ Vagrant.configure("2") do |config|
         kubectl apply -f ./ebpf-sandbox/config/tetragon.yml
         wait $!
         kubectl apply -f ./ebpf-sandbox/config/sys-write-etc-kubernetes-manifests.yaml
+
+        # Install vulnerable clusters
+        # Kube-goat
+        kind create cluster --name=kube-goat --config=./config/clusters/kube-goat.yaml
+
+        #BishopFox badPods
+        kubectl apply -f https://raw.githubusercontent.com/BishopFox/badPods/main/manifests/everything-allowed/pod/everything-allowed-exec-pod.yaml
+        kubectl apply -f https://raw.githubusercontent.com/BishopFox/badPods/main/manifests/priv-and-hostpid/pod/priv-and-hostpid-exec-pod.yaml
+        kubectl apply -f https://raw.githubusercontent.com/BishopFox/badPods/main/manifests/priv/pod/priv-exec-pod.yaml
+        kubectl apply -f https://raw.githubusercontent.com/BishopFox/badPods/main/manifests/hostpath/pod/hostpath-exec-pod.yaml
+        kubectl apply -f https://raw.githubusercontent.com/BishopFox/badPods/main/manifests/hostpid/pod/hostpid-exec-pod.yaml
+        kubectl apply -f https://raw.githubusercontent.com/BishopFox/badPods/main/manifests/hostnetwork/pod/hostnetwork-exec-pod.yaml
+        kubectl apply -f https://raw.githubusercontent.com/BishopFox/badPods/main/manifests/hostipc/pod/hostipc-exec-pod.yaml
+        kubectl apply -f https://raw.githubusercontent.com/BishopFox/badPods/main/manifests/nothing-allowed/pod/nothing-allowed-exec-pod.yaml 
+       
+        # Privledged Pod from CCNF
+        kubectl apply -f https://gist.githubusercontent.com/orkamara/ea5e1d317e733744315c439eb2ab7b33/raw/2227a674bc517f2ff2632ea23814c5cfbd74fa1d/privileged-nginx-deployment.yaml
+        kubectl expose deployment nginx-deployment --type=NodePort --name=nginx-service
+
+        # Isovalent Privleged Pod
+        kubectl apply -f isovalent-privileged.yaml
     SHELL
   end
