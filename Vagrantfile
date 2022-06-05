@@ -14,6 +14,7 @@ Vagrant.configure("2") do |config|
     config.vm.provision "shell", inline: <<-SHELL
         apt-get update
         apt-get install -y build-essential clang conntrack libcap-dev libelf-dev net-tools docker-compose curl apt-transport-https golang gnupg2 ca-certificates lsb-release software-properties-common syslog-ng
+        git clone https://github.com/mikkel0x/ebpf-sandbox.git
         
         # Install kind
         curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.14.0/kind-linux-amd64
@@ -47,11 +48,11 @@ Vagrant.configure("2") do |config|
         sudo systemctl enable filebeat
         
         # Install Tetragon
-        git clone https://github.com/mikkel0x/ebpf-sandbox.git
+        echo "[$(date)] Starting kind-start" > /var/log/kind-start.log
         kind create cluster --config "./ebpf-sandbox/config/nocni_1worker.yaml"
-        wait
+        echo "[$(date)] kind cluster created" >> /var/log/kind-start.log
         kubectl apply -f ./ebpf-sandbox/config/tetragon.yml
-        wait
+        wait $!
         kubectl apply -f ./ebpf-sandbox/config/sys-write-etc-kubernetes-manifests.yaml
     SHELL
   end
