@@ -15,12 +15,8 @@ Vagrant.configure("2") do |config|
         apt-get update
         apt-get install -y build-essential clang conntrack libcap-dev libelf-dev net-tools docker-compose curl apt-transport-https golang gnupg2 ca-certificates lsb-release software-properties-common syslog-ng
         
-        # Enable and start Rsyslog
-        systemctl enable rsyslog
-        systemctl start rsyslog
-        
         # Install kind
-        curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.12.0/kind-linux-amd64
+        curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.14.0/kind-linux-amd64
         chmod +x ./kind
         mv ./kind /usr/local/bin/
         
@@ -47,12 +43,15 @@ Vagrant.configure("2") do |config|
         wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
         echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
         sudo apt-get update && sudo apt-get install filebeat
+        sudo filebeat modules enable system
         sudo systemctl enable filebeat
         
         # Install Tetragon
         git clone https://github.com/mikkel0x/ebpf-sandbox.git
         kind create cluster --config "./ebpf-sandbox/config/nocni_1worker.yaml"
+        wait
         kubectl apply -f ./ebpf-sandbox/config/tetragon.yml
+        wait
         kubectl apply -f ./ebpf-sandbox/config/sys-write-etc-kubernetes-manifests.yaml
     SHELL
   end
