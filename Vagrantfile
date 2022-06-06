@@ -43,9 +43,8 @@ Vagrant.configure("2") do |config|
         docker-compose -f docker-elk/docker-compose.yml up -d
         wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
         echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
-        curl -L -O https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-8.2.2-linux-x86_64.tar.gz
-        tar xzvf filebeat-8.2.2-linux-x86_64.tar.gz
-        sudo ./filebeat-8.2.2-linux-x86_64/filebeat -c ./ebpf-sandbox/config/filebeat.yml -e
+        sudo apt-get update && sudo apt-get install filebeat
+        sudo systemctl enable filebeat -c ./ebpf-sandbox/config/filebeat.yml -e
         
         # Install Tetragon
         echo "[$(date)] Starting kind-start" > /var/log/kind-start.log
