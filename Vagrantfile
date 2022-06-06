@@ -46,13 +46,13 @@ Vagrant.configure("2") do |config|
         sudo apt-get update && sudo apt-get install filebeat
         sudo systemctl enable filebeat 
         sudo systemctl start filebeat
-        sudo mv ./config/filebeat/config.conf /etc/systemd/system/filebeat.service.d
+        sudo mv ./ebpf-sandbox/config/filebeat/config.conf /etc/systemd/system/filebeat.service.d
         systemctl daemon-reload
         systemctl restart filebeat
         
         # Install Tetragon
         echo "[$(date)] Starting kind-start" > /var/log/kind-start.log
-        kind create cluster --config "./ebpf-sandbox/config/clustsers/nocni_1worker.yaml"
+        kind create cluster --config "./ebpf-sandbox/config/clusters/nocni_1worker.yaml"
         echo "[$(date)] kind cluster created" >> /var/log/kind-start.log
         kubectl apply -f ./ebpf-sandbox/config/tetragon/tetragon.yml
         wait $!
