@@ -44,7 +44,8 @@ Vagrant.configure("2") do |config|
         wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
         echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
         sudo apt-get update && sudo apt-get install filebeat
-        sudo systemctl enable filebeat -c ./ebpf-sandbox/config/filebeat.yml -e
+        sudo systemctl enable filebeat 
+        sudo systemctl start filebeat -c ./ebpf-sandbox/config/filebeat.yml -e
         
         # Install Tetragon
         echo "[$(date)] Starting kind-start" > /var/log/kind-start.log
