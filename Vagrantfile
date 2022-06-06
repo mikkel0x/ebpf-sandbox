@@ -47,6 +47,7 @@ Vagrant.configure("2") do |config|
         sudo systemctl enable filebeat 
         sudo systemctl start filebeat
         sudo mv ./ebpf-sandbox/config/filebeat/config.conf /etc/systemd/system/filebeat.service.d
+        sudo mv ./ebpf-sandbox/config/filebeat/filebeat.yml /etc/filebeat/
         systemctl daemon-reload
         systemctl restart filebeat
         

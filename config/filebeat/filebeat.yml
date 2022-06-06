@@ -16,7 +16,11 @@ filebeat.autodiscover:
       hints.enabled: true
 
 processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
   - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+  - add_kubernetes_metadata: ~
 
 output.elasticsearch:
   hosts: ['http://localhost:9200']
@@ -25,7 +29,6 @@ output.elasticsearch:
 
 ## HTTP endpoint for health checking
 ## https://www.elastic.co/guide/en/beats/filebeat/current/http-endpoint.html
-#
 
 http.enabled: true
 http.host: 0.0.0.0
